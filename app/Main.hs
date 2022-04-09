@@ -10,9 +10,11 @@ import qualified Data.Text as T
 import GHC.Generics
 import System.IO
 import Text.HTML.Parser
+import Text.HTML.Scalpel
 import Text.HandsomeSoup
 import Text.Regex.TDFA
 import Text.XML.HXT.Core
+import Zenacy.HTML
 
 data Page = Page
   { url :: String,
@@ -22,17 +24,27 @@ data Page = Page
 
 instance FromJSON Page
 
+cleanUrl :: String -> [String] -> [[String]]
+cleanUrl url x = [[url, x] | x <- x, "http" `isPrefixOf` x]
+
 strToBS :: String -> L.ByteString
 strToBS = L.packChars
 
-printUrl :: Page -> IO ()
+printUrl :: Page -> IO [[String]]
 printUrl m =
   do
+    --putStrLn $ url m
     let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
     links <- runX $ doc >>> css "a" ! "href"
-    mapM_ putStrLn links
 
-readLineByLine :: Handle -> IO ()
+    --let body = scrapeStringLike (html_content m) (texts "body")
+    --print body
+
+    let linksClean = cleanUrl (url m) links
+    return linksClean
+    --print linksClean
+
+{-readLineByLine :: Handle -> IO ()
 readLineByLine input =
   do
     line <- hIsEOF input
@@ -46,6 +58,7 @@ readLineByLine input =
           Nothing -> print "error parsing JSON"
           Just m -> printUrl m
         readLineByLine input
+-}
 
 main = do
   file <- openFile "collection.jl" ReadMode
@@ -54,6 +67,9 @@ main = do
   let mm = decode lineBS :: Maybe Page
   case mm of
     Nothing -> print "error parsing JSON"
-    Just m -> printUrl m
+    Just m -> do
+      links <- printUrl m
+      print links
+      
   --readLineByLine file
   hClose file
