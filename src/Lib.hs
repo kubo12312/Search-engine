@@ -31,6 +31,9 @@ instance FromJSON Page
 cleanUrl :: String -> [String] -> [[String]]
 cleanUrl url x = [[url, x] | x <- x, "http" `isPrefixOf` x]
 
+cleanBody :: [String] -> [String]
+cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)]
+
 strToBS :: String -> L.ByteString
 strToBS = L.packChars
 
@@ -48,12 +51,13 @@ printUrl m =
     return linksClean
     --print linksClean
 
-printBody :: Page -> IO ()
+printBody :: Page -> IO [String]
 printBody m =
   do
     let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
     body <- runX $ doc >>> css "body" //> neg (css "script") >>> removeAllWhiteSpace //> getText
-    print body
+    let bodyText = cleanBody body
+    return bodyText
 
 {-readLineByLine :: Handle -> IO ()
 readLineByLine input =
@@ -71,9 +75,8 @@ readLineByLine input =
         readLineByLine input
 -}
 
-projectFunc :: IO ()
-projectFunc = do
-  file <- openFile "data.jl" ReadMode
+main = do
+  file <- openFile "collection.jl" ReadMode
   jsonLine <- hGetLine file
   let lineBS = strToBS jsonLine
   let mm = decode lineBS :: Maybe Page
@@ -82,7 +85,8 @@ projectFunc = do
     Just m -> do
       --links <- printUrl m
       --print links
-      printBody m      
+      bodyText <- printBody m
+      print bodyText     
       
   --readLineByLine file
   hClose file
