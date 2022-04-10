@@ -75,7 +75,8 @@ readLineByLine input =
         readLineByLine input
 -}
 
-main = do
+projectFunc :: IO ()
+projectFunc = do
   file <- openFile "collection.jl" ReadMode
   jsonLine <- hGetLine file
   let lineBS = strToBS jsonLine
