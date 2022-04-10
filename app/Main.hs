@@ -44,6 +44,13 @@ printUrl m =
     return linksClean
     --print linksClean
 
+printBody :: Page -> IO ()
+printBody m =
+  do
+    let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
+    body <- runX $ doc >>> css "body" //> neg (css "script") >>> removeAllWhiteSpace //> getText
+    print body
+
 {-readLineByLine :: Handle -> IO ()
 readLineByLine input =
   do
@@ -68,8 +75,9 @@ main = do
   case mm of
     Nothing -> print "error parsing JSON"
     Just m -> do
-      links <- printUrl m
-      print links
+      --links <- printUrl m
+      --print links
+      printBody m      
       
   --readLineByLine file
   hClose file
