@@ -24,6 +24,7 @@ dependencies:
 - regex-tdfa ^>= 1.3.1
 - aeson
 - bytestring
+- text-icu
 - text
 - hxt
 - HandsomeSoup

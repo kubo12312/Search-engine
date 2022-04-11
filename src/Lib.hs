@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Lib
     ( projectFunc
@@ -12,13 +12,15 @@ import Data.ByteString.Char8 as C8 (pack)
 import Data.ByteString.Lazy.Internal as L
 import Data.List
 import qualified Data.Text as T
+import Data.Text.ICU.Char
+import Data.Text.ICU.Normalize
 import GHC.Generics
 import System.IO
-import Text.HTML.Scalpel
 import Text.HandsomeSoup
 import Text.Regex.TDFA
 import Text.XML.HXT.Core
 import Zenacy.HTML
+import Data.Char
 
 data Page = Page
   { url :: String,
@@ -27,6 +29,40 @@ data Page = Page
   deriving (Generic)
 
 instance FromJSON Page
+
+canonicalForm :: String -> String
+canonicalForm s = T.unpack noAccents
+  where
+    noAccents = T.filter (not . property Diacritic) normalizedText
+    normalizedText = normalize NFD (T.pack s)
+
+-- split string into words
+split :: String -> [String]
+split = words . map (\c -> if isAlphaNum c then c else ' ')
+
+--remove newlines from string
+removeNewlines :: String -> String
+removeNewlines = filter (/= '\n')
+
+--remove special characters from string
+removeSpecialChars :: String -> String
+removeSpecialChars = filter (\x -> x `elem` ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ [' '])
+
+--remove uppercase from element in list
+removeUppercase :: [String] -> [String]
+removeUppercase = filter (not . any isUpper)
+
+--remove duplicates from list
+removeDuplicates :: [String] -> [String]
+removeDuplicates = nub
+
+--sort list
+sortList :: [String] -> [String]
+sortList = sort
+
+--remove empty strings from list
+removeEmptyStrings :: [String] -> [String]
+removeEmptyStrings = filter (not . null)
 
 cleanUrl :: String -> [String] -> [[String]]
 cleanUrl url x = [[url, x] | x <- x, "http" `isPrefixOf` x]
@@ -44,20 +80,25 @@ printUrl m =
     let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
     links <- runX $ doc >>> css "a" ! "href"
 
-    --let body = scrapeStringLike (html_content m) (texts "body")
-    --print body
+    let linksNoDuplicates = removeDuplicates links
 
-    let linksClean = cleanUrl (url m) links
+    let linksClean = cleanUrl (url m) linksNoDuplicates
     return linksClean
     --print linksClean
 
 printBody :: Page -> IO [String]
-printBody m =
-  do
-    let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
+printBody m = do
+    let doc = readString [withParseHTML yes, withWarnings no, withInputEncoding  isoLatin1] (html_content m)
     body <- runX $ doc >>> css "body" //> neg (css "script") >>> removeAllWhiteSpace //> getText
-    let bodyText = cleanBody body
-    return bodyText
+    let bodyText = unlines (map canonicalForm (cleanBody body))
+    let bodyNoNewlines = removeNewlines bodyText
+    let bodyNoSpecialChars = removeSpecialChars bodyNoNewlines
+    let bodyWords = split bodyNoSpecialChars
+    let bodyNoUppercase = removeUppercase bodyWords
+    let bodyNoDuplicates = removeDuplicates bodyNoUppercase
+    let bodySorted = sortList bodyNoDuplicates
+    let bodyNoEmptyStrings = removeEmptyStrings bodySorted
+    return bodyNoEmptyStrings
 
 {-readLineByLine :: Handle -> IO ()
 readLineByLine input =
@@ -77,7 +118,7 @@ readLineByLine input =
 
 projectFunc :: IO ()
 projectFunc = do
-  file <- openFile "collection.jl" ReadMode
+  file <- openFile "data.jl" ReadMode
   jsonLine <- hGetLine file
   let lineBS = strToBS jsonLine
   let mm = decode lineBS :: Maybe Page
@@ -87,7 +128,7 @@ projectFunc = do
       --links <- printUrl m
       --print links
       bodyText <- printBody m
-      print bodyText     
-      
+      print bodyText
+
   --readLineByLine file
   hClose file
