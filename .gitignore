@@ -24,3 +24,4 @@ cabal.project.local~
 collection.jl
 input.jsonl
 .vscode
+*.jl
