@@ -100,26 +100,36 @@ printBody m = do
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
     return bodyNoEmptyStrings
 
-{-readLineByLine :: Handle -> IO ()
-readLineByLine input =
+handleLine :: Handle -> [[String]] -> IO [[String]]
+handleLine input links=
+  do
+    jsonLine <- hGetLine input
+    let lineBS = strToBS jsonLine
+    let mm = decode lineBS :: Maybe Page
+    case mm of
+      Nothing -> return [["error parsing JSON"]]
+      Just m -> do
+        cleanurl <- printUrl m
+        let cleanurls = links ++ cleanurl 
+        return cleanurls             
+
+readLineByLine :: Handle -> [[String]] -> IO [[String]]
+readLineByLine input links=
   do
     line <- hIsEOF input
+    let cleanurls = links
     if line
-      then return ()
+      then 
+        return links
       else do
-        jsonLine <- hGetLine input
-        let lineBS = strToBS jsonLine
-        let mm = decode lineBS :: Maybe Page
-        case mm of
-          Nothing -> print "error parsing JSON"
-          Just m -> printUrl m
-        readLineByLine input
--}
+        cleanurls <- handleLine input links             
+        readLineByLine input cleanurls
+
 
 projectFunc :: IO ()
 projectFunc = do
   file <- openFile "data.jl" ReadMode
-  jsonLine <- hGetLine file
+  {-jsonLine <- hGetLine file
   let lineBS = strToBS jsonLine
   let mm = decode lineBS :: Maybe Page
   case mm of
@@ -129,6 +139,8 @@ projectFunc = do
       --print links
       bodyText <- printBody m
       print bodyText
-
-  --readLineByLine file
+  -}
+  let link =[[]]
+  links<-readLineByLine file link
+  print (links)
   hClose file
