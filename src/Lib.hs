@@ -22,6 +22,9 @@ import Text.XML.HXT.Core
 import Zenacy.HTML
 import Data.Char
 
+import Data.List
+
+
 data Page = Page
   { url :: String,
     html_content :: String
@@ -43,6 +46,7 @@ split = words . map (\c -> if isAlphaNum c then c else ' ')
 --remove newlines from string
 removeNewlines :: String -> String
 removeNewlines = filter (/= '\n')
+
 
 --remove special characters from string
 removeSpecialChars :: String -> String
@@ -72,6 +76,8 @@ cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)
 
 strToBS :: String -> L.ByteString
 strToBS = L.packChars
+
+
 
 printUrl :: Page -> IO [[String]]
 printUrl m =
@@ -126,6 +132,15 @@ readLineByLine input links=
         readLineByLine input cleanurls
 
 
+--returns number of nodes where node A points to
+iPointOn :: Eq a => [(a, b)] -> a -> Int
+iPointOn f find = length [ x | (x,_) <- f, x == find]
+
+--returns number of nodes pointing on A
+pointingOnMe :: Eq b => [(a, b)] -> b -> Int
+pointingOnMe f find = length [ x | (_,x) <- f, x == find]
+
+
 projectFunc :: IO ()
 projectFunc = do
   file <- openFile "data.jl" ReadMode
@@ -141,6 +156,13 @@ projectFunc = do
       print bodyText
   -}
   let link =[[]]
+  --let linksTest = [(, )]
   links<-readLineByLine file link
+  --linksT<-readLineByLine file linksTest
   print (links)
+
+  let test = iPointOn [("sa","fae"),("sa","fgrs"),("gs","tt")] "sa"
+
+  print(test)
+
   hClose file
