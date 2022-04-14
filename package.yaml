@@ -30,6 +30,7 @@ dependencies:
 - HandsomeSoup
 - zenacy-html
 - scalpel
+- graphite
 
 library:
   source-dirs: src
