@@ -21,6 +21,10 @@ import Text.Regex.TDFA
 import Text.XML.HXT.Core
 import Zenacy.HTML
 import Data.Char
+import Data.Graph.DGraph
+import Data.Graph.Types
+import Data.Graph.Visualize
+import Data.Maybe
 
 import Data.List
 
@@ -68,8 +72,8 @@ sortList = sort
 removeEmptyStrings :: [String] -> [String]
 removeEmptyStrings = filter (not . null)
 
-cleanUrl :: String -> [String] -> [[String]]
-cleanUrl url x = [[url, x] | x <- x, "http" `isPrefixOf` x]
+cleanUrl :: String -> [String] -> [Arc String ()]
+cleanUrl url x = [url --> x | x <- x, "http" `isPrefixOf` x]
 
 cleanBody :: [String] -> [String]
 cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)]
@@ -77,9 +81,10 @@ cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)
 strToBS :: String -> L.ByteString
 strToBS = L.packChars
 
+someDirectedGraph :: [Arc String ()] -> DGraph String ()
+someDirectedGraph edges = fromArcsList edges
 
-
-printUrl :: Page -> IO [[String]]
+printUrl :: Page -> IO [Arc String ()]
 printUrl m =
   do
     --putStrLn $ url m
@@ -106,63 +111,92 @@ printBody m = do
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
     return bodyNoEmptyStrings
 
-handleLine :: Handle -> [[String]] -> IO [[String]]
+handleLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
 handleLine input links=
   do
     jsonLine <- hGetLine input
     let lineBS = strToBS jsonLine
     let mm = decode lineBS :: Maybe Page
     case mm of
-      Nothing -> return [["error parsing JSON"]]
+      Nothing -> return ["error" --> "error"]
       Just m -> do
         cleanurl <- printUrl m
-        let cleanurls = links ++ cleanurl 
-        return cleanurls             
+        let cleanurls = links ++ cleanurl
+        return cleanurls
 
-readLineByLine :: Handle -> [[String]] -> IO [[String]]
+readLineByLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
 readLineByLine input links=
   do
     line <- hIsEOF input
     let cleanurls = links
     if line
-      then 
+      then
         return links
       else do
-        cleanurls <- handleLine input links             
+        cleanurls <- handleLine input links
         readLineByLine input cleanurls
 
+{- PageRank functions -}
+--change all second values for all tuples in array
+initPageRank :: [(String, Float)] -> Int -> [(String, Float)]
+initPageRank x order = map (\(a, b) -> (a, 1 / fromIntegral order)) x
 
---returns number of nodes where node A points to
-iPointOn :: Eq a => [(a, b)] -> a -> Int
-iPointOn f find = length [ x | (x,_) <- f, x == find]
+--find in array of tuples the first element and return the second element
+findRank :: Eq a => a -> [(a, b)] -> b
+findRank x = snd . head . filter (\(a, b) -> a == x)
 
---returns number of nodes pointing on A
-pointingOnMe :: Eq b => [(a, b)] -> b -> Int
-pointingOnMe f find = length [ x | (_,x) <- f, x == find]
+--append to array of Int
+append :: [Int] -> Int -> [Int]
+append x y = x ++ [y]
+
+--count all reachable nodes from a node
+countReachable :: DGraph String () -> String -> [(String, Float)] -> Float
+countReachable g node edges =
+  let
+    number = length (reachableAdjacentVertices g node)
+    rank = findRank node edges
+    total = rank / fromIntegral number
+  in total
+
+countNewRank :: Float -> Float -> [Float] -> Float
+countNewRank oldRank d count = do
+  if null count
+    then oldRank
+    else do
+      let newRank = oldRank + d * head count
+      countNewRank newRank d (drop 1 count)
+
+countPageRank :: [(String, Float)] -> DGraph String () -> (String, Float) -> IO ()
+countPageRank edges graph (url, rank) = do
+  let allNeighbors = adjacentVertices graph url
+  let reachableNeighbors = reachableAdjacentVertices graph url
+
+  let source = allNeighbors \\ reachableNeighbors
+
+  let count = map (\x -> countReachable graph x edges) source
+
+  let newRank = countNewRank rank 0.85 count
+
+  print (url, newRank)
 
 
 projectFunc :: IO ()
 projectFunc = do
   file <- openFile "data.jl" ReadMode
-  {-jsonLine <- hGetLine file
-  let lineBS = strToBS jsonLine
-  let mm = decode lineBS :: Maybe Page
-  case mm of
-    Nothing -> print "error parsing JSON"
-    Just m -> do
-      --links <- printUrl m
-      --print links
-      bodyText <- printBody m
-      print bodyText
-  -}
-  let link =[[]]
-  --let linksTest = [(, )]
-  links<-readLineByLine file link
-  --linksT<-readLineByLine file linksTest
-  print (links)
+  let link =["G" --> "A", "A" --> "G", "B" --> "A", "C" --> "A", "A" --> "C", "A" --> "D", "E" --> "A", "F" --> "A", "D" --> "B", "D" --> "F"]
+  let edges = [("A", 0.0), ("B", 0.0), ("C", 0.0), ("D", 0.0), ("E", 0.0), ("F", 0.0), ("G", 0.0)]
 
-  let test = iPointOn [("sa","fae"),("sa","fgrs"),("gs","tt")] "sa"
-
-  print(test)
-
+  --let link = ["" --> ""]
+  --links<-readLineByLine file link
+  --print (links)
   hClose file
+
+  --create graph from urls
+  let graph = someDirectedGraph link
+  let numberOfEdges = order graph
+
+  --initialize page rank
+  let initValue = initPageRank edges numberOfEdges
+
+  --for every item in initValue array, calculate page rank
+  mapM_ (countPageRank initValue graph) initValue
