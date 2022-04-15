@@ -166,7 +166,7 @@ countNewRank oldRank d count = do
       let newRank = oldRank + d * head count
       countNewRank newRank d (drop 1 count)
 
-countPageRank :: [(String, Float)] -> DGraph String () -> (String, Float) -> IO ()
+countPageRank :: [(String, Float)] -> DGraph String () -> (String, Float) -> IO (String,Float)
 countPageRank edges graph (url, rank) = do
   let allNeighbors = adjacentVertices graph url
   let reachableNeighbors = reachableAdjacentVertices graph url
@@ -176,9 +176,32 @@ countPageRank edges graph (url, rank) = do
   let count = map (\x -> countReachable graph x edges) source
 
   let newRank = countNewRank rank 0.85 count
+  return (url, newRank)
 
-  print (url, newRank)
+--check correlation of each value
+checkDifference :: [(String, Float)] -> [(String, Float)] -> [(String, Float)]
+checkDifference oldPR newPR = [(a, b) | (x, y) <- oldPR, (a, b) <- newPR, y-b>=0.0001 && a==x || b-y>=0.0001 && x==a]
 
+--compare length of list of correlated values and list of pageranks
+compareDifference :: [(String, Float)] -> [(String, Float)] -> IO (Bool)
+compareDifference newPG differencePG = do
+  if length (newPG) == length (differencePG) 
+    then 
+      return True
+  else do
+    return False
+
+handlePageRank :: [(String, Float)] -> [(String, Float)] -> DGraph String () -> IO [(String, Float)]
+handlePageRank oldValuesPR newValuesPR graph = do
+  let comparedValue = checkDifference oldValuesPR newValuesPR
+  compareBoolValue<-compareDifference newValuesPR comparedValue
+  if compareBoolValue == False
+    then
+      return newValuesPR
+  else do
+    --for every item in array, calculate page rank
+    newPR<-mapM (countPageRank newValuesPR graph) newValuesPR
+    handlePageRank newValuesPR newPR graph
 
 projectFunc :: IO ()
 projectFunc = do
@@ -197,6 +220,6 @@ projectFunc = do
 
   --initialize page rank
   let initValue = initPageRank edges numberOfEdges
-
-  --for every item in initValue array, calculate page rank
-  mapM_ (countPageRank initValue graph) initValue
+  --count page rank
+  pagerankValues<-handlePageRank edges initValue graph
+  print pagerankValues
