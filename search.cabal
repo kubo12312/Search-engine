@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Lib
+      PageRank
+      Parser
   other-modules:
       Paths_search
   hs-source-dirs:
