@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use tuple-section" #-}
 
 module Lib
     ( projectFunc
@@ -28,6 +30,7 @@ import Data.Maybe
 
 import Data.List
 import Data.Graph.Connectivity
+import Data.Ord
 
 
 data Page = Page
@@ -88,7 +91,6 @@ someDirectedGraph edges = fromArcsList edges
 printUrl :: Page -> IO [Arc String ()]
 printUrl m =
   do
-    --putStrLn $ url m
     let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
     links <- runX $ doc >>> css "a" ! "href"
 
@@ -96,7 +98,6 @@ printUrl m =
 
     let linksClean = cleanUrl (url m) linksNoDuplicates
     return linksClean
-    --print linksClean
 
 printBody :: Page -> IO [String]
 printBody m = do
@@ -179,7 +180,7 @@ countPageRank edges graph (url, rank) = do
   let source1 = source ++ isReachable graph reachableNeighbors url []
   let count = map (countReachable graph edges) source1
   let sumCount = sum count
-  
+
 
   let newRank = 0.15 + (0.85 * sumCount)
   return (url, newRank)
@@ -213,26 +214,35 @@ handlePageRank oldValuesPR newValuesPR graph = do
 divide :: [(String, Float)] -> Int -> [(String, Float)]
 divide x y = map (\(a, b) -> (a, b / fromIntegral (y))) x
 
+--sor array of tuples by second element
+sortPageRank :: [(String, Float)] -> [(String, Float)]
+sortPageRank = sortBy (comparing snd)
+
+--from array of string to tuple of string and float
+fromStringToTuple :: [String] -> [(String, Float)]
+fromStringToTuple = map (\a -> (a, 0))
+
 projectFunc :: IO ()
 projectFunc = do
   file <- openFile "data.jl" ReadMode
-  let link =["G" --> "A", "A" --> "G", "B" --> "A", "C" --> "A", "A" --> "C", "A" --> "D", "E" --> "A", "F" --> "A", "D" --> "B", "D" --> "F"]
-  let edges = [("A", 0.0), ("B", 0.0), ("C", 0.0), ("D", 0.0), ("E", 0.0), ("F", 0.0), ("G", 0.0)]
-
-  --let link = ["" --> ""]
-  --links<-readLineByLine file link
+  let link = ["" --> ""]
+  links<-readLineByLine file (drop 1 link)
   --print (links)
   hClose file
 
   --create graph from urls
-  let graph = someDirectedGraph link
+  let graph = someDirectedGraph links
   let numberOfEdges = order graph
+
+  let edges = fromStringToTuple (vertices graph)
 
   --initialize page rank
   let initValue = initPageRank edges numberOfEdges
   --count page rank
   pagerankValues<-handlePageRank edges initValue graph
-  let finalPageRank = divide pagerankValues numberOfEdges
-  print finalPageRank
+  --divide pagerank and then sort
+  let sortedPR = sortPageRank (divide pagerankValues numberOfEdges)
+
+  print sortedPR
 
   return ()
