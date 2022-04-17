@@ -27,6 +27,7 @@ import Data.Graph.Visualize
 import Data.Maybe
 
 import Data.List
+import Data.Graph.Connectivity
 
 
 data Page = Page
@@ -150,21 +151,24 @@ append :: [Int] -> Int -> [Int]
 append x y = x ++ [y]
 
 --count all reachable nodes from a node
-countReachable :: DGraph String () -> String -> [(String, Float)] -> Float
-countReachable g node edges =
+countReachable :: DGraph String () -> [(String, Float)] -> String -> Float
+countReachable g edges node =
   let
     number = length (reachableAdjacentVertices g node)
     rank = findRank node edges
     total = rank / fromIntegral number
   in total
 
-countNewRank :: Float -> Float -> [Float] -> Float
-countNewRank oldRank d count = do
-  if null count
-    then oldRank
+--check if node is reachable from node
+isReachable :: DGraph String () -> [String] -> String -> [String] -> [String]
+isReachable graph nodes node nodesReach = do
+  let reachable = reachableAdjacentVertices graph (head nodes)
+  if null nodes
+    then nodesReach
     else do
-      let newRank = oldRank + d * head count
-      countNewRank newRank d (drop 1 count)
+      if node `elem` reachable
+        then isReachable graph (drop 1 nodes) node (nodesReach ++ [head nodes])
+        else isReachable graph (drop 1 nodes) node nodesReach
 
 countPageRank :: [(String, Float)] -> DGraph String () -> (String, Float) -> IO (String,Float)
 countPageRank edges graph (url, rank) = do
@@ -172,36 +176,42 @@ countPageRank edges graph (url, rank) = do
   let reachableNeighbors = reachableAdjacentVertices graph url
 
   let source = allNeighbors \\ reachableNeighbors
+  let source1 = source ++ isReachable graph reachableNeighbors url []
+  let count = map (countReachable graph edges) source1
+  let sumCount = sum count
+  
 
-  let count = map (\x -> countReachable graph x edges) source
-
-  let newRank = countNewRank rank 0.85 count
+  let newRank = 0.15 + (0.85 * sumCount)
   return (url, newRank)
 
 --check correlation of each value
 checkDifference :: [(String, Float)] -> [(String, Float)] -> [(String, Float)]
-checkDifference oldPR newPR = [(a, b) | (x, y) <- oldPR, (a, b) <- newPR, y-b>=0.0001 && a==x || b-y>=0.0001 && x==a]
+checkDifference oldPR newPR = [(a, b) | (x, y) <- oldPR, (a, b) <- newPR, y-b>=10e-6 && a==x || b-y>=10e-6 && x==a]
 
 --compare length of list of correlated values and list of pageranks
-compareDifference :: [(String, Float)] -> [(String, Float)] -> IO (Bool)
-compareDifference newPG differencePG = do
-  if length (newPG) == length (differencePG) 
-    then 
-      return True
+compareDifference :: [(String, Float)] -> IO Bool
+compareDifference differencePG = do
+  if null differencePG
+    then
+      return False
   else do
-    return False
+    return True
 
 handlePageRank :: [(String, Float)] -> [(String, Float)] -> DGraph String () -> IO [(String, Float)]
 handlePageRank oldValuesPR newValuesPR graph = do
   let comparedValue = checkDifference oldValuesPR newValuesPR
-  compareBoolValue<-compareDifference newValuesPR comparedValue
-  if compareBoolValue == False
+  compareBoolValue<-compareDifference comparedValue
+  if not compareBoolValue
     then
       return newValuesPR
   else do
     --for every item in array, calculate page rank
     newPR<-mapM (countPageRank newValuesPR graph) newValuesPR
     handlePageRank newValuesPR newPR graph
+
+--divide all values in list of tuples
+divide :: [(String, Float)] -> Int -> [(String, Float)]
+divide x y = map (\(a, b) -> (a, b / fromIntegral (y))) x
 
 projectFunc :: IO ()
 projectFunc = do
@@ -222,4 +232,7 @@ projectFunc = do
   let initValue = initPageRank edges numberOfEdges
   --count page rank
   pagerankValues<-handlePageRank edges initValue graph
-  print pagerankValues
+  let finalPageRank = divide pagerankValues numberOfEdges
+  print finalPageRank
+
+  return ()
