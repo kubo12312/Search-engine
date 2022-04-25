@@ -1,13 +1,17 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use tuple-section" #-}
 module PageRank where
 import Data.Graph.DGraph
 import Data.Graph.Types
 import Data.List
 import Data.Ord
+import Data.Map (Map, (!))
+import qualified Data.Map as Map
 
 {- PageRank functions -}
---change all second values for all tuples in array
-initPageRank :: [(String, Float)] -> Int -> [(String, Float)]
-initPageRank x order = map (\(a, b) -> (a, 1.0)) x
+--change all second values in map (string double) with 1/n where n is parameter
+normalize :: Int -> Map String Double -> Map String Double
+normalize n = Map.map (\x -> 1 / fromIntegral n)
 
 --find in array of tuples the first element and return the second element
 findRank :: Eq a => a -> [(a, b)] -> b
@@ -22,11 +26,11 @@ changeRank :: Eq a => a -> b -> [(a, b)] -> [(a, b)]
 changeRank x y = map (\(a, b) -> if a == x then (a, y) else (a, b))
 
 --count all reachable nodes from a node
-countReachable :: DGraph String () -> [(String, Float)] -> String -> Float
+countReachable :: DGraph String () -> Map String Double -> String -> Double
 countReachable g edges node =
   let
     number = length (reachableAdjacentVertices g node)
-    rank = findRank node edges
+    rank = edges ! node
     total = rank / fromIntegral number
   in total
 
@@ -41,11 +45,11 @@ isReachable graph nodes node nodesReach = do
         then isReachable graph (drop 1 nodes) node (nodesReach ++ [head nodes])
         else isReachable graph (drop 1 nodes) node nodesReach
 
-countPageRank :: Float -> [(String, Float)] -> DGraph String () -> [String] -> IO [(String, Float)]
+countPageRank :: Double -> Map String Double -> DGraph String () -> [String] -> Map String Double
 countPageRank d edges graph nodes = do
   if null nodes
     then
-      return edges
+      edges
   else do
     let url = head nodes
     let allNeighbors = adjacentVertices graph url
@@ -57,32 +61,38 @@ countPageRank d edges graph nodes = do
     let sumCount = sum count
 
     let newRank = (1-d) + (d * sumCount)
-    let newRankValues = changeRank url newRank edges
+    --update value in map with key
+    let newRankValues = Map.insert url newRank edges
+
     countPageRank d newRankValues graph (drop 1 nodes)
 
---check correlation of each value
-isCorrelation :: [(String, Float)] -> [(String, Float)] -> Bool
-isCorrelation oldPR newPR = do
-  null oldPR || (do
-      let oldRank = snd (head oldPR)
-      let newRank = snd (head newPR)
-      let diff = abs (oldRank - newRank)
-      diff <= 10e-7 && isCorrelation (drop 1 oldPR) (drop 1 newPR))
+--check difference between every second value in map with second value in other map, if difference is less than 10e-7, return true
+isEqual :: Map String Double -> Map String Double -> Bool
+isEqual a b =
+  let
+    aList = Map.toList a
+    bList = Map.toList b
+  in
+    all (\(x, y) -> abs (y - (b ! x)) < 10e-7) aList
 
-handlePageRank :: [(String, Float)] -> [(String, Float)] -> DGraph String () -> IO [(String, Float)]
+handlePageRank :: Map String Double -> Map String Double -> DGraph String () -> Map String Double
 handlePageRank oldValuesPR newValuesPR graph = do
-  let correlation = isCorrelation oldValuesPR newValuesPR
+  let correlation = isEqual oldValuesPR newValuesPR
   if correlation
     then
-      return newValuesPR
+      newValuesPR
   else do
-    newPR<-countPageRank 0.85 newValuesPR graph (vertices graph)
+    let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
     handlePageRank newValuesPR newPR graph
 
 --sort array of tuples by second element
-sortPageRank :: [(String, Float)] -> [(String, Float)]
+sortPageRank :: [(String, Double)] -> [(String, Double)]
 sortPageRank = sortBy (comparing snd)
 
 --from array of string to tuple of string and float
-fromStringToTuple :: [String] -> [(String, Float)]
+fromStringToTuple :: [String] -> [(String, Double)]
 fromStringToTuple = map (\a -> (a, 0))
+
+--from array of string to map of string and float
+fromStringToMap :: [String] -> Map String Double
+fromStringToMap = Map.fromList . fromStringToTuple
