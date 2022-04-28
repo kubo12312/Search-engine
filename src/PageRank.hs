@@ -13,18 +13,6 @@ import qualified Data.Map as Map
 normalize :: Int -> Map String Double -> Map String Double
 normalize n = Map.map (\x -> 1 / fromIntegral n)
 
---find in array of tuples the first element and return the second element
-findRank :: Eq a => a -> [(a, b)] -> b
-findRank x = snd . head . filter (\(a, b) -> a == x)
-
---append to array of Int
-append :: [Int] -> Int -> [Int]
-append x y = x ++ [y]
-
---find in array of tuples by first element and change the second element, copy all other values
-changeRank :: Eq a => a -> b -> [(a, b)] -> [(a, b)]
-changeRank x y = map (\(a, b) -> if a == x then (a, y) else (a, b))
-
 --count all reachable nodes from a node
 countReachable :: DGraph String () -> Map String Double -> String -> Double
 countReachable g edges node =
@@ -61,6 +49,7 @@ countPageRank d edges graph nodes = do
     let sumCount = sum count
 
     let newRank = (1-d) + (d * sumCount)
+
     --update value in map with key
     let newRankValues = Map.insert url newRank edges
 
@@ -96,3 +85,11 @@ fromStringToTuple = map (\a -> (a, 0))
 --from array of string to map of string and float
 fromStringToMap :: [String] -> Map String Double
 fromStringToMap = Map.fromList . fromStringToTuple
+
+--construct json from array of tuples and append to file
+constructJson :: [(String, Double)] -> IO ()
+constructJson [] = return ()
+constructJson (x:xs) = do
+  let json = "{\"url\":\"" ++ fst x ++ "\",\"pagerank\":" ++ show (snd x) ++ "}\n"
+  appendFile "pageRank.jsonl" json
+  constructJson xs

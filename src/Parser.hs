@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module Parser where
 
@@ -113,7 +114,6 @@ handleLine input links=
     let lineBS = strToBS jsonLine
     let mm = decode lineBS :: Maybe Page
     case mm of
-      Nothing -> return ["error" --> "error"]
       Just m -> do
         cleanurl <- printUrl m
         let cleanurls = links ++ cleanurl
