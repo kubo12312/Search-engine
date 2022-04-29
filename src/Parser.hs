@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module Parser where
 
@@ -69,8 +70,8 @@ sortList = sort
 removeEmptyStrings :: [String] -> [String]
 removeEmptyStrings = filter (not . null)
 
-cleanUrl :: String -> [String] -> [Arc String ()]
-cleanUrl url x = [url --> x | x <- x, "http" `isPrefixOf` x]
+cleanUrl :: String -> [String] -> [(String, String)]
+cleanUrl url x = [(url, x) | x <- x, "http" `isPrefixOf` x]
 
 cleanBody :: [String] -> [String]
 cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)]
@@ -78,10 +79,10 @@ cleanBody x = [x | x <- x, not ("{{" `isPrefixOf` x), not (" {{" `isPrefixOf` x)
 strToBS :: String -> L.ByteString
 strToBS = L.packChars
 
-someDirectedGraph :: [Arc String ()] -> DGraph String ()
-someDirectedGraph edges = fromArcsList edges
+insertToGraph :: DGraph String () -> [(String, String)] -> DGraph String ()
+insertToGraph graph x = insertEdgePairs x graph
 
-printUrl :: Page -> IO [Arc String ()]
+printUrl :: Page -> IO [(String, String)]
 printUrl m =
   do
     let doc = readString [withParseHTML yes, withWarnings no] (html_content m)
@@ -106,27 +107,24 @@ printBody m = do
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
     return bodyNoEmptyStrings
 
-handleLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
-handleLine input links=
+handleLine :: Handle -> IO [(String, String)]
+handleLine input =
   do
     jsonLine <- hGetLine input
     let lineBS = strToBS jsonLine
     let mm = decode lineBS :: Maybe Page
     case mm of
-      Nothing -> return ["error" --> "error"]
       Just m -> do
-        cleanurl <- printUrl m
-        let cleanurls = links ++ cleanurl
-        return cleanurls
+        printUrl m
 
-readLineByLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
-readLineByLine input links=
+readLineByLine :: Handle -> DGraph String () -> IO (DGraph String ())
+readLineByLine input graph =
   do
     line <- hIsEOF input
-    let cleanurls = links
     if line
       then
-        return links
+        return graph
       else do
-        cleanurls <- handleLine input links
-        readLineByLine input cleanurls
+        cleanurls <- handleLine input
+        let graph1 = insertToGraph graph cleanurls
+        readLineByLine input graph1
