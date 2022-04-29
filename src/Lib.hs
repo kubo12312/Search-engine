@@ -39,6 +39,6 @@ projectFunc = do
 
   let sortedPR = sortPageRank (Map.toList pagerankValues)
 
-  print sortedPR
+  constructJson sortedPR
 
   return ()
