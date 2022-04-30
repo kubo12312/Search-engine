@@ -20,8 +20,10 @@ projectFunc :: IO ()
 projectFunc = do
   file <- openFile "data.jl" ReadMode
   let link = ["" --> ""]
-  links<-readLineByLine file (drop 1 link)
+  let body=[]
+  (links,bodies)<-readLineByLine file (drop 1 link) body
   --print (links)
+  print (bodies)
   hClose file
 
   -- let links = ["A" --> "B", "B" --> "C", "C" --> "C", "C" --> "B", "B" --> "A"]

@@ -25,3 +25,4 @@ collection.jl
 input.jsonl
 .vscode
 *.jl
+*.jsonl

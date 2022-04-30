@@ -107,8 +107,8 @@ printBody m = do
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
     return bodyNoEmptyStrings
 
-handleLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
-handleLine input links=
+handleLine :: Handle -> [Arc String ()] -> [String] -> IO ([Arc String ()],[String])
+handleLine input links bodies=
   do
     jsonLine <- hGetLine input
     let lineBS = strToBS jsonLine
@@ -116,17 +116,19 @@ handleLine input links=
     case mm of
       Just m -> do
         cleanurl <- printUrl m
+        cleanbody <- printBody m
         let cleanurls = links ++ cleanurl
-        return cleanurls
+        let cleanbodies = bodies ++ cleanbody
+        return (cleanurls,cleanbodies)
 
-readLineByLine :: Handle -> [Arc String ()] -> IO [Arc String ()]
-readLineByLine input links=
+readLineByLine :: Handle -> [Arc String ()] -> [String]-> IO ([Arc String ()],[String])
+readLineByLine input links bodies=
   do
     line <- hIsEOF input
     let cleanurls = links
     if line
       then
-        return links
+        return (links,bodies)
       else do
-        cleanurls <- handleLine input links
-        readLineByLine input cleanurls
+        (cleanurls,bodies2) <- handleLine input links bodies
+        readLineByLine input cleanurls bodies2
