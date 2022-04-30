@@ -25,6 +25,8 @@ import Data.Maybe
 import Data.List
 import Data.Graph.Connectivity
 import Data.Ord
+import Indexer
+import qualified Data.Map as Map
 
 
 data Page = Page
@@ -107,7 +109,7 @@ printBody m = do
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
     return bodyNoEmptyStrings
 
-handleLine :: Handle -> IO [(String, String)]
+handleLine :: Handle -> IO ([(String, String)], [String], String)
 handleLine input =
   do
     jsonLine <- hGetLine input
@@ -115,16 +117,20 @@ handleLine input =
     let mm = decode lineBS :: Maybe Page
     case mm of
       Just m -> do
-        printUrl m
+        urls <- printUrl m
+        body <- printBody m
+        return (urls, body, url m)
 
-readLineByLine :: Handle -> DGraph String () -> IO (DGraph String ())
-readLineByLine input graph =
+
+readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> IO (DGraph String (), Map.Map String [String])
+readLineByLine input graph map =
   do
     line <- hIsEOF input
     if line
       then
-        return graph
+        return (graph, map)
       else do
-        cleanurls <- handleLine input
+        (cleanurls, body, url) <- handleLine input
         let graph1 = insertToGraph graph cleanurls
-        readLineByLine input graph1
+        let newMap = insertMap body url map
+        readLineByLine input graph1 newMap

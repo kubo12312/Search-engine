@@ -14,6 +14,7 @@ import Data.Graph.Types
 import Data.Graph.DGraph
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
+import Indexer
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
@@ -21,11 +22,12 @@ createEmptyDGraph = insertEdgePairs [] empty
 projectFunc :: IO ()
 projectFunc = do
   let graph = createEmptyDGraph
+  let mapEmpty = Map.empty
   file <- openFile "data.jl" ReadMode
-  graphComplete<-readLineByLine file graph
+  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty
   hClose file
 
-  -- -- let links = ["A" --> "B", "B" --> "C", "C" --> "C", "C" --> "B", "B" --> "A"]
+  -- let links = ["A" --> "B", "B" --> "C", "C" --> "C", "C" --> "B", "B" --> "A"]
 
   --create graph from urls
   let numberOfEdges = order graphComplete
@@ -40,5 +42,7 @@ projectFunc = do
   let sortedPR = sortPageRank (Map.toList pagerankValues)
 
   constructJson sortedPR
+
+  print mapWords
 
   return ()
