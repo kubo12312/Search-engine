@@ -8,12 +8,9 @@ insertMap :: [String] -> String -> Map.Map String [String] -> Map.Map String [St
 insertMap [] _ map = map
 insertMap (x:xs) y map = insertMap xs y (Map.insertWith (++) x [y] map)
 
---create csv file and write Map to it. Format is: key, values
 writeMap :: Map.Map String [String] -> IO ()
-writeMap map = writeFile "index.csv" (showMap map)
-  where
-    showMap :: Map.Map String [String] -> String
-    showMap map = foldl (\acc x -> acc ++ show x ++ "\n") "" (Map.toList map)
+writeMap map = do
+    writeFile "index.csv" (concatMap (\(x, y) -> x ++ "," ++ (concatMap (\z -> z ++ ",") y) ++ "\n") (Map.toList map))
 
 --source: https://stackoverflow.com/questions/26260752/sort-one-list-by-the-order-of-another-list
 sortAlong :: Eq b => [b] -> [b] -> [b]

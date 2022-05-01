@@ -32,6 +32,7 @@ dependencies:
 - scalpel
 - graphite
 - containers
+- split
 
 library:
   source-dirs: src

@@ -16,6 +16,7 @@ import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import Indexer
 import GHC.IO.Encoding
+import Search
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
@@ -48,8 +49,11 @@ projectFunc = do
 
   let pageRankArr = fromTupleToString sortedPR
   
-  writeMap mapWords
+  writeMap (sortMap mapWords pageRankArr)
 
-  print (sortMap mapWords pageRankArr)
+  wordsInCsv <- readCsv
+
+  arr <- search "ano" wordsInCsv
+  print arr
 
   return ()

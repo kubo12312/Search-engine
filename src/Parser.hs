@@ -134,3 +134,4 @@ readLineByLine input graph map =
         let graph1 = insertToGraph graph cleanurls
         let newMap = insertMap body url map
         readLineByLine input graph1 newMap
+ 
