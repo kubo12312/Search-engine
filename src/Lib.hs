@@ -25,11 +25,12 @@ projectFunc = do
   setLocaleEncoding utf8
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
-  file <- openFile "data.jl" ReadMode
+  file <- openFile "collection.jl" ReadMode
   (graphComplete, mapWords)<-readLineByLine file graph mapEmpty
   hClose file
 
-  -- let links = ["A" --> "B", "B" --> "C", "C" --> "C", "C" --> "B", "B" --> "A"]
+  -- let links = [("A", "B"), ("B", "C"), ("C", "C"), ("C", "B"), ("B", "A")]
+  -- let graphComplete = insertEdgePairs links graph
 
   --create graph from urls
   let numberOfEdges = order graphComplete
@@ -45,6 +46,10 @@ projectFunc = do
 
   constructJson sortedPR
 
+  let pageRankArr = fromTupleToString sortedPR
+  
   writeMap mapWords
+
+  print (sortMap mapWords pageRankArr)
 
   return ()

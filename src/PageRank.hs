@@ -98,3 +98,7 @@ constructJson (x:xs) = do
   let json = "{\"url\":\"" ++ fst x ++ "\",\"pagerank\":" ++ show (snd x) ++ "}\n"
   appendFile "pageRank.jsonl" json
   constructJson xs
+
+--from array of tuples (string, double) to array of strings
+fromTupleToString :: [(String, Double)] -> [String]
+fromTupleToString = map fst
