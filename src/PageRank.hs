@@ -64,15 +64,20 @@ isEqual a b =
   in
     all (\(x, y) -> abs (y - (b ! x)) < 10e-7) aList
 
-handlePageRank :: Map String Double -> Map String Double -> DGraph String () -> Map String Double
-handlePageRank oldValuesPR newValuesPR graph = do
-  let correlation = isEqual oldValuesPR newValuesPR
-  if correlation
-    then
-      newValuesPR
-  else do
-    let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
-    handlePageRank newValuesPR newPR graph
+handlePageRank :: Map String Double -> Map String Double -> DGraph String () -> Int -> Map String Double
+handlePageRank oldValuesPR newValuesPR graph i = do
+  if i > 1
+    then do
+      let correlation = isEqual oldValuesPR newValuesPR
+      if correlation
+        then
+          newValuesPR
+      else do
+        let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
+        handlePageRank newValuesPR newPR graph (i + 1)
+    else do
+      let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
+      handlePageRank newValuesPR newPR graph (i + 1)
 
 --sort array of tuples by second element
 sortPageRank :: [(String, Double)] -> [(String, Double)]
@@ -93,3 +98,7 @@ constructJson (x:xs) = do
   let json = "{\"url\":\"" ++ fst x ++ "\",\"pagerank\":" ++ show (snd x) ++ "}\n"
   appendFile "pageRank.jsonl" json
   constructJson xs
+
+--from array of tuples (string, double) to array of strings
+fromTupleToString :: [(String, Double)] -> [String]
+fromTupleToString = map fst
