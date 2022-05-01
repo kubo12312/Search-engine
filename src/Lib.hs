@@ -15,12 +15,14 @@ import Data.Graph.DGraph
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import Indexer
+import GHC.IO.Encoding
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
 
 projectFunc :: IO ()
 projectFunc = do
+  setLocaleEncoding utf8
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
   file <- openFile "data.jl" ReadMode
@@ -37,12 +39,12 @@ projectFunc = do
   --initialize page rank
   let initValue = normalize numberOfEdges edges
   --count page rank
-  let pagerankValues = handlePageRank edges initValue graphComplete
+  let pagerankValues = handlePageRank edges initValue graphComplete 1
 
   let sortedPR = sortPageRank (Map.toList pagerankValues)
 
   constructJson sortedPR
 
-  print mapWords
+  writeMap mapWords
 
   return ()
