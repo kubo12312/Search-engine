@@ -17,13 +17,13 @@ import qualified Data.Map as Map
 import Indexer
 import GHC.IO.Encoding
 import Search
+import Data.List.Split
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
 
-projectFunc :: IO ()
-projectFunc = do
-  setLocaleEncoding utf8
+parseAndPageRank :: IO [String]
+parseAndPageRank = do
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
   file <- openFile "collection.jl" ReadMode
@@ -48,12 +48,41 @@ projectFunc = do
   constructJson sortedPR
 
   let pageRankArr = fromTupleToString sortedPR
-  
+
   writeMap (sortMap mapWords pageRankArr)
+
+  return pageRankArr
+
+searching:: [String] -> [String] -> IO ()
+searching words pageRank = do
+  putStrLn "\nType 'exit' to exit"
+  input <- getLine
+  let inputWords = splitOn " " input
+  if input == "exit"
+    then return ()
+    else do
+      result <- searchHandle inputWords words []
+      let resultFinal = sortAlong pageRank result
+      if null resultFinal
+        then do
+          putStrLn "No result"
+          searching words pageRank
+        else do
+          putStrLn "Result:"
+          --print first 10 results
+          let resultList = take 10 (reverse result)
+          mapM_ print resultFinal
+          searching words pageRank
+
+
+projectFunc :: IO ()
+projectFunc = do
+  setLocaleEncoding utf8
+
+  pageRankArr <- parseAndPageRank
 
   wordsInCsv <- readCsv
 
-  arr <- search "ano" wordsInCsv
-  print arr
+  searching wordsInCsv pageRankArr
 
   return ()
