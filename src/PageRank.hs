@@ -7,6 +7,7 @@ import Data.List
 import Data.Ord
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
+import Data.Aeson
 
 {- PageRank functions -}
 --change all second values in map (string double) with 1/n where n is parameter

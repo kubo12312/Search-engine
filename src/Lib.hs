@@ -45,7 +45,8 @@ parseAndPageRank = do
 
   let sortedPR = sortPageRank (Map.toList pagerankValues)
 
-  constructJson sortedPR
+  let pageRank = createPageRank sortedPR
+  encodeToJson pageRank
 
   let pageRankArr = fromTupleToString sortedPR
 
@@ -94,6 +95,7 @@ projectFunc :: IO ()
 projectFunc = do
   setLocaleEncoding utf8
   pageRankArr <- readPGfromFileOrNot
+  print (length pageRankArr)
   wordsInCsv <- readCsv
   searching wordsInCsv pageRankArr
   return ()

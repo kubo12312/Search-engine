@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Parser where
 
@@ -41,9 +42,7 @@ data PageRank = PageRank
   { urlpg :: String,
     pagerank :: Double
   }
-  deriving (Generic)
-
-instance FromJSON PageRank
+  deriving (Generic, ToJSON, FromJSON)
 
 canonicalForm :: String -> String
 canonicalForm s = T.unpack noAccents
@@ -166,4 +165,16 @@ readPGbyLine input pgUrl =
         return pgUrl
       else do
         pgUrls <- handlePGLine input pgUrl
-        readPGbyLine input pgUrls 
+        readPGbyLine input pgUrls
+
+--from [L.ByteString] to String with new line
+bsToStr :: [L.ByteString] -> String
+bsToStr = unlines . map L.unpackChars
+
+createPageRank :: [(String, Double)] -> [PageRank]
+createPageRank = map (uncurry PageRank)
+
+encodeToJson :: [PageRank] -> IO ()
+encodeToJson x = do
+  let encoded = map encode x
+  appendFile "pageRank.jsonl" (bsToStr encoded)
