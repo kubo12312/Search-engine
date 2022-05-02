@@ -122,16 +122,16 @@ handleLine input =
         return (urls, body, url m)
 
 
-readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> IO (DGraph String (), Map.Map String [String])
-readLineByLine input graph map =
+readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> Int -> IO (DGraph String (), Map.Map String [String])
+readLineByLine input graph map i =
   do
     line <- hIsEOF input
-    if line
+    if line || i > 50
       then
         return (graph, map)
       else do
         (cleanurls, body, url) <- handleLine input
         let graph1 = insertToGraph graph cleanurls
         let newMap = insertMap body url map
-        readLineByLine input graph1 newMap
+        readLineByLine input graph1 newMap (i + 1)
  

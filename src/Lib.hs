@@ -27,7 +27,7 @@ parseAndPageRank = do
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
   file <- openFile "collection.jl" ReadMode
-  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty
+  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty 1
   hClose file
 
   -- let links = [("A", "B"), ("B", "C"), ("C", "C"), ("C", "B"), ("B", "A")]
@@ -62,7 +62,7 @@ searching words pageRank = do
     then return ()
     else do
       result <- searchHandle inputWords words []
-      let resultFinal = sortAlong pageRank result
+      let resultFinal = sortAlong pageRank (removeDuplicates result)
       if null resultFinal
         then do
           putStrLn "No result"
@@ -70,8 +70,8 @@ searching words pageRank = do
         else do
           putStrLn "Result:"
           --print first 10 results
-          let resultList = take 10 (reverse result)
-          mapM_ print resultFinal
+          let resultList = take 10 (reverse resultFinal)
+          mapM_ print resultList
           searching words pageRank
 
 
