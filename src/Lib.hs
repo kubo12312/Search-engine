@@ -75,14 +75,25 @@ searching words pageRank = do
           searching words pageRank
 
 
+readPGfromFileOrNot :: IO [String]
+readPGfromFileOrNot =  
+  do
+    putStrLn "\nType 'yes' if you want to read page rank from file pageRank.jsonl"
+    input <- getLine
+    if input == "yes"      
+      then do
+        file <- openFile "pageRank.jsonl" ReadMode
+        let pgArr=[]
+        pgArrs <- readPGbyLine file pgArr
+        return pgArrs
+      else do
+        pgArr <- parseAndPageRank
+        return pgArr
+
 projectFunc :: IO ()
 projectFunc = do
   setLocaleEncoding utf8
-
-  pageRankArr <- parseAndPageRank
-
+  pageRankArr <- readPGfromFileOrNot
   wordsInCsv <- readCsv
-
   searching wordsInCsv pageRankArr
-
   return ()

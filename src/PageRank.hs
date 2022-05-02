@@ -95,7 +95,7 @@ fromStringToMap = Map.fromList . fromStringToTuple
 constructJson :: [(String, Double)] -> IO ()
 constructJson [] = return ()
 constructJson (x:xs) = do
-  let json = "{\"url\":\"" ++ fst x ++ "\",\"pagerank\":" ++ show (snd x) ++ "}\n"
+  let json = "{\"urlpg\": \"" ++ fst x ++ "\",\"pagerank\": " ++ show (snd x) ++ "}\n"
   appendFile "pageRank.jsonl" json
   constructJson xs
 

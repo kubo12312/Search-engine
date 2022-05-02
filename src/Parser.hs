@@ -37,6 +37,14 @@ data Page = Page
 
 instance FromJSON Page
 
+data PageRank = PageRank
+  { urlpg :: String,
+    pagerank :: Double
+  }
+  deriving (Generic)
+
+instance FromJSON PageRank
+
 canonicalForm :: String -> String
 canonicalForm s = T.unpack noAccents
   where
@@ -121,7 +129,6 @@ handleLine input =
         body <- printBody m
         return (urls, body, url m)
 
-
 readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> Int -> IO (DGraph String (), Map.Map String [String])
 readLineByLine input graph map i =
   do
@@ -134,4 +141,29 @@ readLineByLine input graph map i =
         let graph1 = insertToGraph graph cleanurls
         let newMap = insertMap body url map
         readLineByLine input graph1 newMap (i + 1)
- 
+
+
+handlePGLine :: Handle -> [String] -> IO [String]
+handlePGLine input pgUrl=
+  do
+    jsonLine <- hGetLine input
+    let lineBS = strToBS jsonLine
+    let mm = decode lineBS :: Maybe PageRank
+    case mm of
+      Just m -> do
+        let urlx=[urlpg m]
+        let pgUrls = pgUrl ++ urlx
+        return pgUrls
+      Nothing -> do
+        return pgUrl
+
+readPGbyLine :: Handle -> [String] -> IO [String]
+readPGbyLine input pgUrl =
+  do
+    line <- hIsEOF input
+    if line
+      then
+        return pgUrl
+      else do
+        pgUrls <- handlePGLine input pgUrl
+        readPGbyLine input pgUrls 
