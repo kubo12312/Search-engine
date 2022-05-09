@@ -59,7 +59,7 @@ searching words pageRank = do
   if input == "exit"
     then return ()
     else do
-      result <- searchHandle inputWords words []
+      let result = searchHandle inputWords words []
       let resultFinal = sortAlong pageRank result
       if null resultFinal
         then do

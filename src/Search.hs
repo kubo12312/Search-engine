@@ -8,7 +8,6 @@ readCsv = do
   let alllines = lines file
   return alllines
 
---find duplicates in two arrays and return them as a list
 findDuplicates :: [String] -> [String] -> [String]
 findDuplicates [] _ = []
 findDuplicates _ [] = []
@@ -16,20 +15,20 @@ findDuplicates (x:xs) (y:ys)
   | x == y = x : findDuplicates xs ys
   | otherwise = findDuplicates xs ys
 
-search :: String -> [String] -> IO [String]
+search :: String -> [String] -> [String]
 search word words = do
-  let result = filter (\x -> splitOn "," x !! 0 == word) words
+  let result = filter (\x -> head (splitOn "," x) == word) words
   let resultSplit = splitArray result
-  return (firstLast resultSplit)
+  firstLast resultSplit
 
-searchHandle :: [String] -> [String] -> [String] -> IO [String]
+searchHandle :: [String] -> [String] -> [String] -> [String]
 searchHandle input wordInCsv result = do
     if null input
-        then return result
+        then result
         else do
             let word = head input
-            newResult <- search word wordInCsv
-            if null result 
+            let newResult = search word wordInCsv
+            if null result
                 then searchHandle (tail input) wordInCsv newResult
             else if null newResult
                 then searchHandle (tail input) wordInCsv result
