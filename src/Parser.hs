@@ -123,23 +123,28 @@ handleLine input =
     let lineBS = strToBS jsonLine
     let mm = decode lineBS :: Maybe Page
     case mm of
+      Nothing -> return ([], [], "")
       Just m -> do
         urls <- printUrl m
         body <- printBody m
         return (urls, body, url m)
 
-readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> Int -> IO (DGraph String (), Map.Map String [String])
-readLineByLine input graph map i =
+readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> IO (DGraph String (), Map.Map String [String])
+readLineByLine input graph map =
   do
     line <- hIsEOF input
-    if line || i > 50
+    if line
       then
         return (graph, map)
       else do
         (cleanurls, body, url) <- handleLine input
-        let graph1 = insertToGraph graph cleanurls
-        let newMap = insertMap body url map
-        readLineByLine input graph1 newMap (i + 1)
+        if null cleanurls || null body || url == "" 
+          then do
+            readLineByLine input graph map
+          else do
+            let graph1 = insertToGraph graph cleanurls
+            let newMap = insertMap body url map
+            readLineByLine input graph1 newMap
 
 
 handlePGLine :: Handle -> [String] -> IO [String]

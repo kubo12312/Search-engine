@@ -27,11 +27,8 @@ parseAndPageRank = do
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
   file <- openFile "collection.jl" ReadMode
-  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty 1
+  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty
   hClose file
-
-  -- let links = [("A", "B"), ("B", "C"), ("C", "C"), ("C", "B"), ("B", "A")]
-  -- let graphComplete = insertEdgePairs links graph
 
   --create graph from urls
   let numberOfEdges = order graphComplete
@@ -56,14 +53,14 @@ parseAndPageRank = do
 
 searching:: [String] -> [String] -> IO ()
 searching words pageRank = do
-  putStrLn "\nType 'exit' to exit"
+  putStrLn "\nType 'exit' to exit.\nType words to search.\n"
   input <- getLine
   let inputWords = splitOn " " input
   if input == "exit"
     then return ()
     else do
       result <- searchHandle inputWords words []
-      let resultFinal = sortAlong pageRank (removeDuplicates result)
+      let resultFinal = sortAlong pageRank result
       if null resultFinal
         then do
           putStrLn "No result"
@@ -79,7 +76,7 @@ searching words pageRank = do
 readPGfromFileOrNot :: IO [String]
 readPGfromFileOrNot =  
   do
-    putStrLn "\nType 'yes' if you want to read page rank from file pageRank.jsonl"
+    putStrLn "\nType 'yes' if you want to read page rank from file pageRank.jsonl\nType 'no' if you want to calculate page rank\n"
     input <- getLine
     if input == "yes"      
       then do
@@ -87,15 +84,18 @@ readPGfromFileOrNot =
         let pgArr=[]
         pgArrs <- readPGbyLine file pgArr
         return pgArrs
-      else do
+    else if input == "no" 
+      then do
         pgArr <- parseAndPageRank
         return pgArr
+    else do
+      putStrLn "Wrong input"
+      readPGfromFileOrNot
 
 projectFunc :: IO ()
 projectFunc = do
   setLocaleEncoding utf8
   pageRankArr <- readPGfromFileOrNot
-  print (length pageRankArr)
   wordsInCsv <- readCsv
   searching wordsInCsv pageRankArr
   return ()
