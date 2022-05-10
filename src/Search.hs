@@ -11,8 +11,8 @@ readCsv = do
 findDuplicates :: [String] -> [String] -> [String]
 findDuplicates [] _ = []
 findDuplicates _ [] = []
-findDuplicates (x:xs) (y:ys)
-  | x == y = x : findDuplicates xs ys
+findDuplicates (x:xs) ys
+  | elem x ys = x : findDuplicates xs ys
   | otherwise = findDuplicates xs ys
 
 search :: String -> [String] -> [String]
@@ -33,7 +33,7 @@ searchHandle input wordInCsv result = do
             else if null newResult
                 then searchHandle (tail input) wordInCsv result
             else do
-              let duplicates = findDuplicates result newResult
+              let duplicates = findDuplicates newResult result
               searchHandle (tail input) wordInCsv duplicates
 
 
