@@ -63,9 +63,9 @@ removeNewlines = filter (/= '\n')
 removeSpecialChars :: String -> String
 removeSpecialChars = filter (\x -> x `elem` ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ [' '])
 
---remove uppercase from element in list
-removeUppercase :: [String] -> [String]
-removeUppercase = filter (not . any isUpper)
+--change uppercase to lowercase for every word in [string]
+lowercase :: [String] -> [String]
+lowercase = map (map toLower)
 
 --remove duplicates from list
 removeDuplicates :: [String] -> [String]
@@ -110,7 +110,7 @@ printBody m = do
     let bodyNoNewlines = removeNewlines bodyText
     let bodyNoSpecialChars = removeSpecialChars bodyNoNewlines
     let bodyWords = split bodyNoSpecialChars
-    let bodyNoUppercase = removeUppercase bodyWords
+    let bodyNoUppercase = lowercase bodyWords
     let bodyNoDuplicates = removeDuplicates bodyNoUppercase
     let bodySorted = sortList bodyNoDuplicates
     let bodyNoEmptyStrings = removeEmptyStrings bodySorted
