@@ -18,6 +18,7 @@ import Indexer
 import GHC.IO.Encoding
 import Search
 import Data.List.Split
+import Data.Char (toLower)
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
@@ -55,7 +56,7 @@ searching:: [String] -> [String] -> IO ()
 searching words pageRank = do
   putStrLn "\nType 'exit' to exit.\nType words to search.\n"
   input <- getLine
-  let inputWords = splitOn " " input
+  let inputWords = lowercase (splitOn " " input)
   if input == "exit"
     then return ()
     else do
