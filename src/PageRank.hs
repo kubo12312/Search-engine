@@ -57,28 +57,22 @@ countPageRank d edges graph nodes = do
     countPageRank d newRankValues graph (drop 1 nodes)
 
 --check difference between every second value in map with second value in other map, if difference is less than 10e-7, return true
-isEqual :: Map String Double -> Map String Double -> Bool
-isEqual a b =
-  let
-    aList = Map.toList a
-    bList = Map.toList b
-  in
-    all (\(x, y) -> abs (y - (b ! x)) < 10e-7) aList
+-- isEqual :: Map String Double -> Map String Double -> Bool
+-- isEqual a b =
+--   let
+--     aList = Map.toList a
+--     bList = Map.toList b
+--   in
+--     all (\(x, y) -> abs (y - (b ! x)) < 10e-7) aList
 
-handlePageRank :: Map String Double -> Map String Double -> DGraph String () -> Int -> Map String Double
-handlePageRank oldValuesPR newValuesPR graph i = do
-  if i > 1
+handlePageRank :: Map String Double -> DGraph String () -> Int -> Map String Double
+handlePageRank newValuesPR graph i = do
+  if i > 100
     then do
-      let correlation = isEqual oldValuesPR newValuesPR
-      if correlation
-        then
-          newValuesPR
-      else do
-        let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
-        handlePageRank newValuesPR newPR graph (i + 1)
+      newValuesPR
     else do
-      let newPR = countPageRank 0.85 newValuesPR graph (vertices graph)
-      handlePageRank newValuesPR newPR graph (i + 1)
+      let newValuesPR1 = countPageRank 0.85 newValuesPR graph (Map.keys newValuesPR)
+      handlePageRank newValuesPR1 graph (i + 1)
 
 --sort array of tuples by second element
 sortPageRank :: [(String, Double)] -> [(String, Double)]

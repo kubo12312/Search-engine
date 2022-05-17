@@ -28,7 +28,7 @@ parseAndPageRank = do
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
   file <- openFile "collection.jl" ReadMode
-  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty
+  (graphComplete, mapWords)<-readLineByLine file graph mapEmpty 1
   hClose file
 
   --create graph from urls
@@ -39,7 +39,7 @@ parseAndPageRank = do
   --initialize page rank
   let initValue = normalize numberOfEdges edges
   --count page rank
-  let pagerankValues = handlePageRank edges initValue graphComplete 1
+  let pagerankValues = handlePageRank initValue graphComplete 1
 
   let sortedPR = sortPageRank (Map.toList pagerankValues)
 

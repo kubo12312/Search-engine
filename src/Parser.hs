@@ -129,22 +129,22 @@ handleLine input =
         body <- printBody m
         return (urls, body, url m)
 
-readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> IO (DGraph String (), Map.Map String [String])
-readLineByLine input graph map =
+readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> Int -> IO (DGraph String (), Map.Map String [String])
+readLineByLine input graph map i =
   do
     line <- hIsEOF input
-    if line
+    if line || i > 20000
       then
         return (graph, map)
       else do
         (cleanurls, body, url) <- handleLine input
         if null cleanurls || null body || url == "" 
           then do
-            readLineByLine input graph map
+            readLineByLine input graph map (i + 1)
           else do
             let graph1 = insertToGraph graph cleanurls
             let newMap = insertMap body url map
-            readLineByLine input graph1 newMap
+            readLineByLine input graph1 newMap (i + 1)
 
 
 handlePGLine :: Handle -> [String] -> IO [String]
@@ -177,7 +177,7 @@ bsToStr :: [L.ByteString] -> String
 bsToStr = unlines . map L.unpackChars
 
 createPageRank :: [(String, Double)] -> [PageRank]
-createPageRank = map (uncurry PageRank)
+createPageRank = map (\(x, y) -> PageRank x y)
 
 encodeToJson :: [PageRank] -> IO ()
 encodeToJson x = do
