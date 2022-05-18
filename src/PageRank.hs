@@ -69,7 +69,7 @@ handlePageRank newValuesPR graph i = do
 
 --sort array of tuples by second element
 sortPageRank :: [(String, Double)] -> [(String, Double)]
-sortPageRank = sortBy (comparing snd)
+sortPageRank = sortBy (compare `on` snd)
 
 --from array of string to tuple of string and float
 fromStringToTuple :: [String] -> Int -> [(String, Double)]

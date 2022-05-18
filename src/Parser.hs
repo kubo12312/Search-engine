@@ -133,7 +133,7 @@ readLineByLine :: Handle -> DGraph String () -> Map.Map String [String] -> Int -
 readLineByLine input graph map i =
   do
     line <- hIsEOF input
-    if line || i > 50
+    if line || i > 1000
       then
         return (graph, map)
       else do
@@ -176,14 +176,9 @@ readPGbyLine input pgUrl =
 bsToStr :: [L.ByteString] -> String
 bsToStr = unlines . map L.unpackChars
 
-createPageRank :: [(String, Double)] -> [PageRank]
-createPageRank = map (uncurry PageRank)
-
-encodeToJson :: [PageRank] -> IO ()
-encodeToJson x = do
-  let encoded = map encode x
-  appendFile "pageRank.jsonl" (bsToStr encoded)
-
---from [PageRank] return [PageRank.url]
-getUrls :: [PageRank] -> [String]
-getUrls = map urlpg
+constructJson :: [(String, Double)] -> IO ()
+constructJson [] = return ()
+constructJson (x:xs) = do
+  let json = "{\"urlpg\": \"" ++ fst x ++ "\",\"pagerank\": " ++ show (snd x) ++ "}\n"
+  appendFile "pageRank.jsonl" json
+  constructJson xs

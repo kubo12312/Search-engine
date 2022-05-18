@@ -41,13 +41,14 @@ parseAndPageRank = do
   --count page rank
   let pagerankValues = handlePageRank edges graphComplete 1
 
-  let pageRank = createPageRank . sortPageRank $ Map.toList pagerankValues
+  let pageRank = sortPageRank $ Map.toList pagerankValues
   exists <- doesFileExist "pageRank.jsonl"
   when exists $ removeFile "pageRank.jsonl"
-  encodeToJson pageRank
+  constructJson pageRank
 
-  let pageRankArr = getUrls pageRank
-
+  let pgArr = []
+  filePR <- openFile "pageRank.jsonl" ReadMode
+  pageRankArr <- readPGbyLine filePR pgArr
   return (pageRankArr, mapWords)
 
 searching:: [String] -> [String] -> IO ()
@@ -67,7 +68,7 @@ searching words pageRank = do
         else do
           putStrLn "Result:"
           --print first 10 results
-          let resultList = take 10 (reverse resultFinal)
+          let resultList = take 10 resultFinal
           mapM_ print resultList
           searching words pageRank
 
