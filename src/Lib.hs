@@ -19,11 +19,13 @@ import GHC.IO.Encoding
 import Search
 import Data.List.Split
 import Data.Char (toLower)
+import System.Directory
+import Control.Monad
 
 createEmptyDGraph :: DGraph String ()
 createEmptyDGraph = insertEdgePairs [] empty
 
-parseAndPageRank :: IO [String]
+parseAndPageRank :: IO ([String], Map String [String])
 parseAndPageRank = do
   let graph = createEmptyDGraph
   let mapEmpty = Map.empty
@@ -32,25 +34,21 @@ parseAndPageRank = do
   hClose file
 
   --create graph from urls
-  let numberOfEdges = order graphComplete
+  let numberOfVertices = order graphComplete
 
-  let edges = fromStringToMap (vertices graphComplete)
+  let edges = fromStringToMap (vertices graphComplete) numberOfVertices
 
-  --initialize page rank
-  let initValue = normalize numberOfEdges edges
   --count page rank
-  let pagerankValues = handlePageRank initValue graphComplete 1
+  let pagerankValues = handlePageRank edges graphComplete 1
 
-  let sortedPR = sortPageRank (Map.toList pagerankValues)
-
-  let pageRank = createPageRank sortedPR
+  let pageRank = createPageRank . sortPageRank $ Map.toList pagerankValues
+  exists <- doesFileExist "pageRank.jsonl"
+  when exists $ removeFile "pageRank.jsonl"
   encodeToJson pageRank
 
-  let pageRankArr = fromTupleToString sortedPR
+  let pageRankArr = getUrls pageRank
 
-  writeMap (sortMap mapWords pageRankArr)
-
-  return pageRankArr
+  return (pageRankArr, mapWords)
 
 searching:: [String] -> [String] -> IO ()
 searching words pageRank = do
@@ -75,19 +73,20 @@ searching words pageRank = do
 
 
 readPGfromFileOrNot :: IO [String]
-readPGfromFileOrNot =  
+readPGfromFileOrNot =
   do
     putStrLn "\nType 'yes' if you want to read page rank from file pageRank.jsonl\nType 'no' if you want to calculate page rank\n"
     input <- getLine
-    if input == "yes"      
+    if input == "yes"
       then do
         file <- openFile "pageRank.jsonl" ReadMode
         let pgArr=[]
         pgArrs <- readPGbyLine file pgArr
         return pgArrs
-    else if input == "no" 
+    else if input == "no"
       then do
-        pgArr <- parseAndPageRank
+        (pgArr, mapWords) <- parseAndPageRank
+        writeMap (sortMap mapWords pgArr)
         return pgArr
     else do
       putStrLn "Wrong input"

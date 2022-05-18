@@ -3,11 +3,13 @@
 module PageRank where
 import Data.Graph.DGraph
 import Data.Graph.Types
-import Data.List
+import Data.List hiding (partition)
 import Data.Ord
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import Data.Aeson
+import Data.Function
+import qualified Data.List as List
 
 {- PageRank functions -}
 --change all second values in map (string double) with 1/n where n is parameter
@@ -56,15 +58,6 @@ countPageRank d edges graph nodes = do
 
     countPageRank d newRankValues graph (drop 1 nodes)
 
---check difference between every second value in map with second value in other map, if difference is less than 10e-7, return true
--- isEqual :: Map String Double -> Map String Double -> Bool
--- isEqual a b =
---   let
---     aList = Map.toList a
---     bList = Map.toList b
---   in
---     all (\(x, y) -> abs (y - (b ! x)) < 10e-7) aList
-
 handlePageRank :: Map String Double -> DGraph String () -> Int -> Map String Double
 handlePageRank newValuesPR graph i = do
   if i > 100
@@ -79,20 +72,12 @@ sortPageRank :: [(String, Double)] -> [(String, Double)]
 sortPageRank = sortBy (comparing snd)
 
 --from array of string to tuple of string and float
-fromStringToTuple :: [String] -> [(String, Double)]
-fromStringToTuple = map (\a -> (a, 0))
+fromStringToTuple :: [String] -> Int -> [(String, Double)]
+fromStringToTuple xs vertices = map (\a -> (a, 1 / fromIntegral vertices)) xs
 
 --from array of string to map of string and float
-fromStringToMap :: [String] -> Map String Double
-fromStringToMap = Map.fromList . fromStringToTuple
-
---construct json from array of tuples and append to file
-constructJson :: [(String, Double)] -> IO ()
-constructJson [] = return ()
-constructJson (x:xs) = do
-  let json = "{\"urlpg\": \"" ++ fst x ++ "\",\"pagerank\": " ++ show (snd x) ++ "}\n"
-  appendFile "pageRank.jsonl" json
-  constructJson xs
+fromStringToMap :: [String] -> Int -> Map String Double
+fromStringToMap xs = Map.fromList . fromStringToTuple xs
 
 --from array of tuples (string, double) to array of strings
 fromTupleToString :: [(String, Double)] -> [String]

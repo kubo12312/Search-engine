@@ -33,6 +33,7 @@ dependencies:
 - graphite
 - containers
 - split
+- directory
 
 library:
   source-dirs: src
