@@ -68,7 +68,7 @@ searching words pageRank = do
         else do
           putStrLn "Result:"
           --print first 10 results
-          let resultList = take 10 resultFinal
+          let resultList = take 10 (reverse resultFinal)
           mapM_ print resultList
           searching words pageRank
 
